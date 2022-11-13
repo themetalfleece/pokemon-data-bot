@@ -1,7 +1,7 @@
 {
-  "name": "nodejs-typescript-template",
-  "version": "1.34.0",
-  "description": "A template for a nodejs application, using typescript",
+  "name": "pokemon-data-bot",
+  "version": "0.1.0",
+  "description": "A Twitch bot which provides Pokemon data",
   "main": "dist/src/index.js",
   "author": "",
   "license": "MIT",

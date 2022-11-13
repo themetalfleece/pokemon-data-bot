@@ -2,16 +2,6 @@
 
 # This template gets updated daily so the latest dependencies are always used!
 
-## What to do after using this template
-
-1. Edit `package.json` to set the project name, version, description, and author.
-2. Edit the `LICENSE` file to use your name in the Copyright section.
-3. Edit the `.prettierrc.json` file with your preferred values.
-4. Remove the `.github/workflows/upgrade-dependencies.yml` files, since it contains the workflow to upgrade all dependencies on a daily basis.
-   * In case you would like to keep it, remove lines 7, 30, 32 from it. Also, change the git user name in line 28.
-5. Delete this section from the `README.md` file.
-6. Start coding by editing the `src/app.ts` file!
-
 ## Install
 
 1. Install [node.js](https://nodejs.org/en/download/), [yarn](https://yarnpkg.com/getting-started/install) (or use npm).
