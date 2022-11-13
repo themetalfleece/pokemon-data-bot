@@ -5,6 +5,7 @@ import { distance } from 'fastest-levenshtein';
 export type PokemonData = {
   id: number;
   name: string;
+  nationalDexNumber: number;
   baseStats: number[];
   types: string[];
   abilities: string[];
@@ -21,31 +22,47 @@ export class CachedPokemonData extends Cached {
       return;
     }
 
+    console.log('refreshing cache');
+
     const query = gql`
       {
-        pokemon_v2_pokemon {
-          id
-          pokemon_v2_pokemonstats(order_by: { stat_id: asc }) {
-            base_stat
-            pokemon_v2_stat {
-              name
-            }
+        pokemon_v2_pokemonform {
+          pokemon_v2_pokemonformnames(where: { language_id: { _eq: 9 } }) {
+            name
+            pokemon_name
           }
-          pokemon_v2_pokemontypes {
-            pokemon_v2_type {
-              name
-            }
-          }
-          pokemon_v2_pokemonabilities {
-            pokemon_v2_ability {
-              pokemon_v2_abilitynames(where: { language_id: { _eq: 9 } }) {
+          pokemon_v2_pokemon {
+            id
+            pokemon_v2_pokemonstats(order_by: { stat_id: asc }) {
+              base_stat
+              pokemon_v2_stat {
                 name
               }
             }
-          }
-          pokemon_v2_pokemonspecy {
-            pokemon_v2_pokemonspeciesnames(where: { language_id: { _eq: 9 } }) {
-              name
+            pokemon_v2_pokemontypes {
+              pokemon_v2_type {
+                name
+              }
+            }
+            pokemon_v2_pokemonabilities {
+              pokemon_v2_ability {
+                pokemon_v2_abilitynames(where: { language_id: { _eq: 9 } }) {
+                  name
+                }
+              }
+            }
+            pokemon_v2_pokemonspecy {
+              pokemon_v2_pokemonspeciesnames(
+                where: { language_id: { _eq: 9 } }
+              ) {
+                name
+              }
+              pokemon_v2_pokemondexnumbers(
+                limit: 1
+                order_by: { pokedex_id: asc }
+              ) {
+                pokedex_number
+              }
             }
           }
         }
@@ -53,39 +70,57 @@ export class CachedPokemonData extends Cached {
     `;
 
     const data: {
-      pokemon_v2_pokemon: Array<{
-        id: number;
-        pokemon_v2_pokemonstats: Array<{
-          base_stat: number;
-          pokemon_v2_stat: {
-            name: string;
-          };
-        }>;
-        pokemon_v2_pokemontypes: Array<{
-          pokemon_v2_type: {
-            name: string;
-          };
-        }>;
-        pokemon_v2_pokemonabilities: Array<{
-          pokemon_v2_ability: {
-            pokemon_v2_abilitynames: Array<{
+      pokemon_v2_pokemonform: Array<{
+        pokemon_v2_pokemon: {
+          id: number;
+          pokemon_v2_pokemonstats: Array<{
+            base_stat: number;
+            pokemon_v2_stat: {
+              name: string;
+            };
+          }>;
+          pokemon_v2_pokemontypes: Array<{
+            pokemon_v2_type: {
+              name: string;
+            };
+          }>;
+          pokemon_v2_pokemonabilities: Array<{
+            pokemon_v2_ability: {
+              pokemon_v2_abilitynames: Array<{
+                name: string;
+              }>;
+            };
+          }>;
+          pokemon_v2_pokemonspecy: {
+            pokemon_v2_pokemonspeciesnames: Array<{
               name: string;
             }>;
+            pokemon_v2_pokemondexnumbers: Array<{
+              pokedex_number: number;
+            }>;
           };
-        }>;
-        pokemon_v2_pokemonspecy: {
-          pokemon_v2_pokemonspeciesnames: Array<{
-            name: string;
-          }>;
         };
+        pokemon_v2_pokemonformnames: Array<{
+          name: string;
+          pokemon_name: string;
+        }>;
       }>;
     } = await request(this.pokeapiGqlEndpoint, query);
 
-    for (const pokemon of data.pokemon_v2_pokemon) {
+    for (const pokeData of data.pokemon_v2_pokemonform) {
+      const pokemon = pokeData.pokemon_v2_pokemon;
+      const name =
+        pokeData.pokemon_v2_pokemonformnames[0]?.pokemon_name ??
+        pokemon.pokemon_v2_pokemonspecy.pokemon_v2_pokemonspeciesnames[0].name;
+
+      console.log(pokemon.pokemon_v2_pokemonspecy);
+
       this.pokemonDataById[pokemon.id] = {
         id: pokemon.id,
-        name: pokemon.pokemon_v2_pokemonspecy.pokemon_v2_pokemonspeciesnames[0]
-          .name,
+        name,
+        nationalDexNumber:
+          pokemon.pokemon_v2_pokemonspecy.pokemon_v2_pokemondexnumbers[0]
+            .pokedex_number,
         baseStats: pokemon.pokemon_v2_pokemonstats.map(
           (stat) => stat.base_stat,
         ),
@@ -117,7 +152,10 @@ export class CachedPokemonData extends Cached {
 
     const { pokemonData } = Object.values(this.pokemonDataById).reduce(
       (closestData, currentData) => {
-        const currentDistance = distance(currentData.name, name);
+        const currentDistance = distance(
+          currentData.name.toLowerCase(),
+          name.toLowerCase(),
+        );
 
         if (currentDistance < closestData.distance) {
           closestData = {

@@ -56,7 +56,7 @@ export class TwitchInterface {
           return;
         }
 
-        const dex = data.id;
+        const dex = data.nationalDexNumber;
         const species = data.name;
         const types = data.types.join('/');
         const baseStats = data.baseStats.join('/');
