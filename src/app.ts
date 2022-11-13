@@ -9,5 +9,5 @@ dotenv.config();
 new TwitchInterface(
   process.env.TWITCH_CLIENT_ID ?? '',
   process.env.TWITCH_CLIENT_SECRET ?? '',
-  ['themetalfleece'],
+  ['themetalfleece', 'bwenty', 'fentheshepherd', 'izzy22x'],
 );
