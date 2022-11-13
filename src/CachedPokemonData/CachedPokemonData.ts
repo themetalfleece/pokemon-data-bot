@@ -1,5 +1,5 @@
 import { request, gql } from 'graphql-request';
-import { distance } from 'fastest-levenshtein';
+import { compareTwoStrings } from 'string-similarity';
 
 export type PokemonData = {
   id: number;
@@ -165,15 +165,15 @@ export class CachedPokemonData {
 
     const { pokemonData } = Object.values(this.pokemonDataById).reduce(
       (closestData, currentData) => {
-        const currentDistance = distance(
+        const currentSimilarity = compareTwoStrings(
           currentData.name.toLowerCase(),
           name.toLowerCase(),
         );
 
-        if (currentDistance < closestData.distance) {
+        if (currentSimilarity > closestData.similarity) {
           closestData = {
             pokemonData: currentData,
-            distance: currentDistance,
+            similarity: currentSimilarity,
           };
         }
 
@@ -181,7 +181,7 @@ export class CachedPokemonData {
       },
       {
         pokemonData: undefined as PokemonData | undefined,
-        distance: Infinity,
+        similarity: -Infinity,
       },
     );
 
