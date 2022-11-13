@@ -1,4 +1,3 @@
-import { Cached } from '../Cached/Cached';
 import { request, gql } from 'graphql-request';
 import { distance } from 'fastest-levenshtein';
 
@@ -11,17 +10,33 @@ export type PokemonData = {
   abilities: string[];
 };
 
-export class CachedPokemonData extends Cached {
+export class CachedPokemonData {
   private pokeapiGqlEndpoint = 'https://beta.pokeapi.co/graphql/v1beta';
+  /** refresh every 1 hour */
+  private refreshInterval = 1 * 60 * 60 * 1000;
 
   private pokemonDataById: Record<number, PokemonData> = {};
   private pokemonIdsByName: Record<string, number> = {};
 
-  private async validateCache() {
-    if (this.isActive()) {
-      return;
-    }
+  private ready = false;
 
+  constructor() {
+    this.refreshCache().catch((err) => {
+      console.error(`Error while fetching the initial cache`, err);
+    });
+
+    setInterval(() => {
+      this.refreshCache().catch((err) => {
+        console.error(`Error while refreshing cache`, err);
+      });
+    }, this.refreshInterval);
+  }
+
+  public isReady() {
+    return this.ready;
+  }
+
+  private async refreshCache() {
     console.log('refreshing cache');
 
     const query = gql`
@@ -111,22 +126,22 @@ export class CachedPokemonData extends Cached {
       const pokemon = pokeData.pokemon_v2_pokemon;
       const name =
         pokeData.pokemon_v2_pokemonformnames[0]?.pokemon_name ??
-        pokemon.pokemon_v2_pokemonspecy.pokemon_v2_pokemonspeciesnames[0].name;
-
-      console.log(pokemon.pokemon_v2_pokemonspecy);
+        pokemon.pokemon_v2_pokemonspecy.pokemon_v2_pokemonspeciesnames[0]
+          ?.name ??
+        '';
 
       this.pokemonDataById[pokemon.id] = {
         id: pokemon.id,
         name,
         nationalDexNumber:
           pokemon.pokemon_v2_pokemonspecy.pokemon_v2_pokemondexnumbers[0]
-            .pokedex_number,
+            ?.pokedex_number ?? 0,
         baseStats: pokemon.pokemon_v2_pokemonstats.map(
           (stat) => stat.base_stat,
         ),
         abilities: pokemon.pokemon_v2_pokemonabilities.map(
           (ability) =>
-            ability.pokemon_v2_ability.pokemon_v2_abilitynames[0].name,
+            ability.pokemon_v2_ability.pokemon_v2_abilitynames[0]?.name ?? '',
         ),
         types: pokemon.pokemon_v2_pokemontypes.map(
           (type) =>
@@ -138,14 +153,12 @@ export class CachedPokemonData extends Cached {
 
     this.pokemonIdsByName = {};
 
-    this.refreshExpiration();
+    this.ready = true;
 
     console.log('Cache updated');
   }
 
   private async getPokemonIdByName(name: string) {
-    await this.validateCache();
-
     if (this.pokemonIdsByName[name]) {
       return this.pokemonIdsByName[name];
     }
@@ -185,8 +198,6 @@ export class CachedPokemonData extends Cached {
     if (!name) {
       return;
     }
-
-    await this.validateCache();
 
     const pokemonId = await this.getPokemonIdByName(name);
 

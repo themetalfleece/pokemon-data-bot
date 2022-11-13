@@ -50,6 +50,18 @@ export class TwitchInterface {
           return;
         }
 
+        if (!cachedPokemonData.isReady()) {
+          chatClient.say(
+            channel,
+            `I just restarted and I'm not ready yet, please try again in a few seconds!`,
+            {
+              replyTo: msg.id,
+            },
+          );
+
+          return;
+        }
+
         const data = await cachedPokemonData.getPokemonDataByName(name);
 
         if (!data) {
