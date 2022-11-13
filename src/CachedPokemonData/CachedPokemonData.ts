@@ -10,6 +10,9 @@ export type PokemonIndex = {
 export type PokemonData = {
   id: number;
   name: string;
+  baseStats: number[];
+  types: string[];
+  abilities: string[];
 };
 
 export class CachedPokemonData extends Cached {
@@ -162,9 +165,9 @@ export class CachedPokemonData extends Cached {
         }>;
         pokemon_v2_pokemonabilities: Array<{
           pokemon_v2_ability: {
-            pokemon_v2_abilitynames: {
+            pokemon_v2_abilitynames: Array<{
               name: string;
-            };
+            }>;
           };
         }>;
         pokemon_v2_pokemonspecy: {
@@ -175,10 +178,21 @@ export class CachedPokemonData extends Cached {
       }>;
     } = await request(this.pokeapiGqlEndpoint, query);
 
+    // TODO fetch all at once
+
     this.pokemonDataById[pokemonId] = {
       id: data.pokemon_v2_pokemon[0].id,
       name: data.pokemon_v2_pokemon[0].pokemon_v2_pokemonspecy
         .pokemon_v2_pokemonspeciesnames[0].name,
+      baseStats: data.pokemon_v2_pokemon[0].pokemon_v2_pokemonstats.map(
+        (stat) => stat.base_stat,
+      ),
+      abilities: data.pokemon_v2_pokemon[0].pokemon_v2_pokemonabilities.map(
+        (ability) => ability.pokemon_v2_ability.pokemon_v2_abilitynames[0].name,
+      ),
+      types: data.pokemon_v2_pokemon[0].pokemon_v2_pokemontypes.map(
+        (type) => type.pokemon_v2_type.name,
+      ),
     };
 
     console.log(this.pokemonDataById);
