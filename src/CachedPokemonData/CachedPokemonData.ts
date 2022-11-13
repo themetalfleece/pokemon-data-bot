@@ -1,5 +1,6 @@
 import { Cached } from '../Cached/Cached';
 import { request, gql } from 'graphql-request';
+import { distance } from 'fastest-levenshtein';
 
 export type PokemonIndex = {
   id: number;
@@ -69,9 +70,23 @@ export class CachedPokemonData extends Cached {
       return this.pokemonIdsByName[name];
     }
 
-    // TODO find by similarity
-    const pokemonIndex = this.pokemonIndex.find(
-      (indexEntry) => indexEntry.name === name,
+    const { pokemonIndex } = this.pokemonIndex.reduce(
+      (closestIndex, currentIndex) => {
+        const currentDistance = distance(currentIndex.name, name);
+
+        if (currentDistance < closestIndex.distance) {
+          closestIndex = {
+            pokemonIndex: currentIndex,
+            distance: currentDistance,
+          };
+        }
+
+        return closestIndex;
+      },
+      {
+        pokemonIndex: undefined as PokemonIndex | undefined,
+        distance: Infinity,
+      },
     );
 
     if (!pokemonIndex) {
@@ -165,5 +180,7 @@ export class CachedPokemonData extends Cached {
       name: data.pokemon_v2_pokemon[0].pokemon_v2_pokemonspecy
         .pokemon_v2_pokemonspeciesnames[0].name,
     };
+
+    console.log(this.pokemonDataById);
   }
 }
