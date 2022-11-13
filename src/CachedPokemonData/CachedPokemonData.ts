@@ -157,3 +157,5 @@ export class CachedPokemonData extends Cached {
     return this.pokemonDataById[pokemonId];
   }
 }
+
+export const cachedPokemonData = new CachedPokemonData();

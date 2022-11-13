@@ -3,7 +3,7 @@ import * as dayjs from 'dayjs';
 export abstract class Cached {
   protected expiresAt: dayjs.Dayjs;
 
-  constructor(private expirationHours: number = 12) {
+  constructor(private expirationHours: number = 1) {
     this.expiresAt = dayjs();
   }
 
