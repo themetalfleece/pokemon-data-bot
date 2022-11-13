@@ -1,18 +1,14 @@
 import { Cached } from '../Cached/Cached';
 import { request, gql } from 'graphql-request';
 
-export type PokemonIndexData = Array<{
+export type PokemonIndex = {
   id: number;
   name: string;
-}>;
+};
 
 export class CachedPokemonIndex extends Cached {
   private pokeapiGqlEndpoint = 'https://beta.pokeapi.co/graphql/v1beta';
-  private data: PokemonIndexData = [];
-
-  constructor() {
-    super();
-  }
+  private data: PokemonIndex[] = [];
 
   public async getData() {
     if (this.isExpired()) {
@@ -35,7 +31,7 @@ export class CachedPokemonIndex extends Cached {
     return this.data;
   }
 
-  private setData(data: PokemonIndexData) {
+  private setData(data: PokemonIndex[]) {
     this.data = data;
     this.refreshExpiration();
   }
