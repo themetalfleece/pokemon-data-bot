@@ -20,14 +20,15 @@
     "@twurple/chat": "^5.2.7",
     "dayjs": "^1.11.6",
     "dotenv": "^16.0.3",
-    "fastest-levenshtein": "^1.0.16",
     "graphql": "^16.6.0",
-    "graphql-request": "^5.0.0"
+    "graphql-request": "^5.0.0",
+    "string-similarity": "^4.0.4"
   },
   "devDependencies": {
     "@types/dotenv": "^8.2.0",
     "@types/jest": "^29.2.2",
     "@types/node": "^18.11.9",
+    "@types/string-similarity": "^4.0.0",
     "@typescript-eslint/eslint-plugin": "^5.42.1",
     "@typescript-eslint/parser": "^5.42.1",
     "eslint": "^8.27.0",
