@@ -2,11 +2,6 @@ import { Cached } from '../Cached/Cached';
 import { request, gql } from 'graphql-request';
 import { distance } from 'fastest-levenshtein';
 
-export type PokemonIndex = {
-  id: number;
-  name: string;
-};
-
 export type PokemonData = {
   id: number;
   name: string;
@@ -18,8 +13,7 @@ export type PokemonData = {
 export class CachedPokemonData extends Cached {
   private pokeapiGqlEndpoint = 'https://beta.pokeapi.co/graphql/v1beta';
 
-  private pokemonIndex: PokemonIndex[] = [];
-  private pokemonDataById: Record<string, PokemonData> = {};
+  private pokemonDataById: Record<number, PokemonData> = {};
   private pokemonIdsByName: Record<string, number> = {};
 
   private async validateCache() {
@@ -31,98 +25,7 @@ export class CachedPokemonData extends Cached {
       {
         pokemon_v2_pokemon {
           id
-          pokemon_v2_pokemonspecy {
-            pokemon_v2_pokemonspeciesnames(where: { language_id: { _eq: 9 } }) {
-              name
-            }
-          }
-        }
-      }
-    `;
-
-    const data: {
-      pokemon_v2_pokemon: Array<{
-        id: number;
-        pokemon_v2_pokemonspecy: {
-          pokemon_v2_pokemonspeciesnames: [
-            {
-              name: string;
-            },
-          ];
-        };
-      }>;
-    } = await request(this.pokeapiGqlEndpoint, query);
-
-    this.pokemonIndex = data.pokemon_v2_pokemon.map((pokemon) => ({
-      id: pokemon.id,
-      name: pokemon.pokemon_v2_pokemonspecy.pokemon_v2_pokemonspeciesnames[0]
-        .name,
-    }));
-
-    this.pokemonDataById = {};
-
-    this.pokemonIdsByName = {};
-
-    this.refreshExpiration();
-  }
-
-  private async getPokemonIdByName(name: string) {
-    await this.validateCache();
-
-    if (this.pokemonIdsByName[name]) {
-      return this.pokemonIdsByName[name];
-    }
-
-    const { pokemonIndex } = this.pokemonIndex.reduce(
-      (closestIndex, currentIndex) => {
-        const currentDistance = distance(currentIndex.name, name);
-
-        if (currentDistance < closestIndex.distance) {
-          closestIndex = {
-            pokemonIndex: currentIndex,
-            distance: currentDistance,
-          };
-        }
-
-        return closestIndex;
-      },
-      {
-        pokemonIndex: undefined as PokemonIndex | undefined,
-        distance: Infinity,
-      },
-    );
-
-    if (!pokemonIndex) {
-      return undefined;
-    }
-
-    this.pokemonIdsByName[name] = pokemonIndex?.id;
-
-    return this.pokemonIdsByName[name];
-  }
-
-  public async getPokemonDataByName(name: string) {
-    if (!name) {
-      return;
-    }
-
-    await this.validateCache();
-
-    const pokemonId = await this.getPokemonIdByName(name);
-
-    if (typeof pokemonId !== 'number') {
-      return;
-    }
-
-    if (this.pokemonDataById[pokemonId]) {
-      return this.pokemonDataById[pokemonId];
-    }
-
-    const query = gql`
-      {
-        pokemon_v2_pokemon(where: {id: {_eq: ${pokemonId}}}) {
-          id
-          pokemon_v2_pokemonstats(order_by: {stat_id: asc}) {
+          pokemon_v2_pokemonstats(order_by: { stat_id: asc }) {
             base_stat
             pokemon_v2_stat {
               name
@@ -135,13 +38,13 @@ export class CachedPokemonData extends Cached {
           }
           pokemon_v2_pokemonabilities {
             pokemon_v2_ability {
-              pokemon_v2_abilitynames(where: {language_id: {_eq: 9}}) {
+              pokemon_v2_abilitynames(where: { language_id: { _eq: 9 } }) {
                 name
               }
             }
           }
           pokemon_v2_pokemonspecy {
-            pokemon_v2_pokemonspeciesnames(where: {language_id: {_eq: 9}}) {
+            pokemon_v2_pokemonspeciesnames(where: { language_id: { _eq: 9 } }) {
               name
             }
           }
@@ -178,23 +81,77 @@ export class CachedPokemonData extends Cached {
       }>;
     } = await request(this.pokeapiGqlEndpoint, query);
 
-    // TODO fetch all at once
+    for (const pokemon of data.pokemon_v2_pokemon) {
+      this.pokemonDataById[pokemon.id] = {
+        id: pokemon.id,
+        name: pokemon.pokemon_v2_pokemonspecy.pokemon_v2_pokemonspeciesnames[0]
+          .name,
+        baseStats: pokemon.pokemon_v2_pokemonstats.map(
+          (stat) => stat.base_stat,
+        ),
+        abilities: pokemon.pokemon_v2_pokemonabilities.map(
+          (ability) =>
+            ability.pokemon_v2_ability.pokemon_v2_abilitynames[0].name,
+        ),
+        types: pokemon.pokemon_v2_pokemontypes.map(
+          (type) => type.pokemon_v2_type.name,
+        ),
+      };
+    }
 
-    this.pokemonDataById[pokemonId] = {
-      id: data.pokemon_v2_pokemon[0].id,
-      name: data.pokemon_v2_pokemon[0].pokemon_v2_pokemonspecy
-        .pokemon_v2_pokemonspeciesnames[0].name,
-      baseStats: data.pokemon_v2_pokemon[0].pokemon_v2_pokemonstats.map(
-        (stat) => stat.base_stat,
-      ),
-      abilities: data.pokemon_v2_pokemon[0].pokemon_v2_pokemonabilities.map(
-        (ability) => ability.pokemon_v2_ability.pokemon_v2_abilitynames[0].name,
-      ),
-      types: data.pokemon_v2_pokemon[0].pokemon_v2_pokemontypes.map(
-        (type) => type.pokemon_v2_type.name,
-      ),
-    };
+    this.pokemonIdsByName = {};
 
-    console.log(this.pokemonDataById);
+    this.refreshExpiration();
+  }
+
+  private async getPokemonIdByName(name: string) {
+    await this.validateCache();
+
+    if (this.pokemonIdsByName[name]) {
+      return this.pokemonIdsByName[name];
+    }
+
+    const { pokemonData } = Object.values(this.pokemonDataById).reduce(
+      (closestData, currentData) => {
+        const currentDistance = distance(currentData.name, name);
+
+        if (currentDistance < closestData.distance) {
+          closestData = {
+            pokemonData: currentData,
+            distance: currentDistance,
+          };
+        }
+
+        return closestData;
+      },
+      {
+        pokemonData: undefined as PokemonData | undefined,
+        distance: Infinity,
+      },
+    );
+
+    if (!pokemonData) {
+      return undefined;
+    }
+
+    this.pokemonIdsByName[name] = pokemonData.id;
+
+    return this.pokemonIdsByName[name];
+  }
+
+  public async getPokemonDataByName(name: string) {
+    if (!name) {
+      return;
+    }
+
+    await this.validateCache();
+
+    const pokemonId = await this.getPokemonIdByName(name);
+
+    if (typeof pokemonId !== 'number') {
+      return;
+    }
+
+    return this.pokemonDataById[pokemonId];
   }
 }
