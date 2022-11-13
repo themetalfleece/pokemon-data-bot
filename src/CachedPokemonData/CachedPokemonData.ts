@@ -104,6 +104,8 @@ export class CachedPokemonData extends Cached {
     this.pokemonIdsByName = {};
 
     this.refreshExpiration();
+
+    console.log('Cache updated');
   }
 
   private async getPokemonIdByName(name: string) {

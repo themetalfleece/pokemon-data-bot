@@ -11,7 +11,7 @@ export class TwitchInterface {
     private clientSecret: string,
     private channels: string[],
   ) {
-    this.tokenPath = `./token-${clientId}.json`;
+    this.tokenPath = `./tokens/token-${clientId}.json`;
     this.register();
   }
 
@@ -40,6 +40,8 @@ export class TwitchInterface {
     });
 
     await chatClient.connect();
+
+    console.log('Twitch client connected');
 
     chatClient.onMessage(async (channel, _user, text, msg) => {
       if (text.startsWith('!poke')) {

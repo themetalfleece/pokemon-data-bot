@@ -11,4 +11,4 @@ yarn-error.log
 # coverage
 coverage
 # twitch token persistance file
-token-*.json
+tokens
