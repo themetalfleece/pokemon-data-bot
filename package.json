@@ -16,6 +16,8 @@
     "test:coverage": "jest --coverage"
   },
   "dependencies": {
+    "@twurple/auth": "^5.2.7",
+    "@twurple/chat": "^5.2.7",
     "dayjs": "^1.11.6",
     "dotenv": "^16.0.3",
     "fastest-levenshtein": "^1.0.16",
