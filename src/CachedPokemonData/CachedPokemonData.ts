@@ -14,19 +14,13 @@ export type PokemonData = {
 export class CachedPokemonData extends Cached {
   private pokeapiGqlEndpoint = 'https://beta.pokeapi.co/graphql/v1beta';
 
-  private data: {
-    index: PokemonIndex[];
-    pokemonDataById: Record<string, PokemonData>;
-    pokemonIdsByName: Record<string, number>;
-  } = {
-    index: [],
-    pokemonDataById: {},
-    pokemonIdsByName: {},
-  };
+  private pokemonIndex: PokemonIndex[] = [];
+  private pokemonDataById: Record<string, PokemonData> = {};
+  private pokemonIdsByName: Record<string, number> = {};
 
-  public async getData() {
+  private async validateCache() {
     if (this.isActive()) {
-      return this.data;
+      return;
     }
 
     const query = gql`
@@ -55,38 +49,38 @@ export class CachedPokemonData extends Cached {
       }>;
     } = await request(this.pokeapiGqlEndpoint, query);
 
-    this.data = {
-      index: data.pokemon_v2_pokemon.map((pokemon) => ({
-        id: pokemon.id,
-        name: pokemon.pokemon_v2_pokemonspecy.pokemon_v2_pokemonspeciesnames[0]
-          .name,
-      })),
-      pokemonDataById: {},
-      pokemonIdsByName: {},
-    };
+    this.pokemonIndex = data.pokemon_v2_pokemon.map((pokemon) => ({
+      id: pokemon.id,
+      name: pokemon.pokemon_v2_pokemonspecy.pokemon_v2_pokemonspeciesnames[0]
+        .name,
+    }));
+
+    this.pokemonDataById = {};
+
+    this.pokemonIdsByName = {};
 
     this.refreshExpiration();
-
-    return this.data;
   }
 
   private async getPokemonIdByName(name: string) {
-    const { index, pokemonIdsByName } = await this.getData();
+    await this.validateCache();
 
-    if (pokemonIdsByName[name]) {
-      return pokemonIdsByName[name];
+    if (this.pokemonIdsByName[name]) {
+      return this.pokemonIdsByName[name];
     }
 
     // TODO find by similarity
-    const pokemonIndex = index.find((indexEntry) => indexEntry.name === name);
+    const pokemonIndex = this.pokemonIndex.find(
+      (indexEntry) => indexEntry.name === name,
+    );
 
     if (!pokemonIndex) {
       return undefined;
     }
 
-    pokemonIdsByName[name] = pokemonIndex?.id;
+    this.pokemonIdsByName[name] = pokemonIndex?.id;
 
-    return pokemonIdsByName[name];
+    return this.pokemonIdsByName[name];
   }
 
   public async getPokemonDataByName(name: string) {
@@ -94,7 +88,7 @@ export class CachedPokemonData extends Cached {
       return;
     }
 
-    const { pokemonDataById } = await this.getData();
+    await this.validateCache();
 
     const pokemonId = await this.getPokemonIdByName(name);
 
@@ -102,8 +96,8 @@ export class CachedPokemonData extends Cached {
       return;
     }
 
-    if (pokemonDataById[pokemonId]) {
-      return pokemonDataById[pokemonId];
+    if (this.pokemonDataById[pokemonId]) {
+      return this.pokemonDataById[pokemonId];
     }
 
     const query = gql`
@@ -166,7 +160,7 @@ export class CachedPokemonData extends Cached {
       }>;
     } = await request(this.pokeapiGqlEndpoint, query);
 
-    this.data.pokemonDataById[pokemonId] = {
+    this.pokemonDataById[pokemonId] = {
       id: data.pokemon_v2_pokemon[0].id,
       name: data.pokemon_v2_pokemon[0].pokemon_v2_pokemonspecy
         .pokemon_v2_pokemonspeciesnames[0].name,
