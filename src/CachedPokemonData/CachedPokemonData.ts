@@ -25,46 +25,47 @@ export class CachedPokemonData extends Cached {
   };
 
   public async getData() {
-    if (this.isExpired()) {
-      const query = gql`
-        {
-          pokemon_v2_pokemon {
-            id
-            pokemon_v2_pokemonspecy {
-              pokemon_v2_pokemonspeciesnames(
-                where: { language_id: { _eq: 9 } }
-              ) {
-                name
-              }
+    if (this.isActive()) {
+      return this.data;
+    }
+
+    const query = gql`
+      {
+        pokemon_v2_pokemon {
+          id
+          pokemon_v2_pokemonspecy {
+            pokemon_v2_pokemonspeciesnames(where: { language_id: { _eq: 9 } }) {
+              name
             }
           }
         }
-      `;
+      }
+    `;
 
-      const data: {
-        pokemon_v2_pokemon: Array<{
-          id: number;
-          pokemon_v2_pokemonspecy: {
-            pokemon_v2_pokemonspeciesnames: [
-              {
-                name: string;
-              },
-            ];
-          };
-        }>;
-      } = await request(this.pokeapiGqlEndpoint, query);
+    const data: {
+      pokemon_v2_pokemon: Array<{
+        id: number;
+        pokemon_v2_pokemonspecy: {
+          pokemon_v2_pokemonspeciesnames: [
+            {
+              name: string;
+            },
+          ];
+        };
+      }>;
+    } = await request(this.pokeapiGqlEndpoint, query);
 
-      this.data = {
-        index: data.pokemon_v2_pokemon.map((pokemon) => ({
-          id: pokemon.id,
-          name: pokemon.pokemon_v2_pokemonspecy
-            .pokemon_v2_pokemonspeciesnames[0].name,
-        })),
-        pokemonDataById: {},
-        pokemonIdsByName: {},
-      };
-      this.refreshExpiration();
-    }
+    this.data = {
+      index: data.pokemon_v2_pokemon.map((pokemon) => ({
+        id: pokemon.id,
+        name: pokemon.pokemon_v2_pokemonspecy.pokemon_v2_pokemonspeciesnames[0]
+          .name,
+      })),
+      pokemonDataById: {},
+      pokemonIdsByName: {},
+    };
+
+    this.refreshExpiration();
 
     return this.data;
   }
@@ -72,14 +73,18 @@ export class CachedPokemonData extends Cached {
   private async getPokemonIdByName(name: string) {
     const { index, pokemonIdsByName } = await this.getData();
 
-    if (!pokemonIdsByName[name]) {
-      // TODO find by similarity
-      const pokemonIndex = index.find((indexEntry) => indexEntry.name === name);
-      if (!pokemonIndex) {
-        return undefined;
-      }
-      pokemonIdsByName[name] = pokemonIndex?.id;
+    if (pokemonIdsByName[name]) {
+      return pokemonIdsByName[name];
     }
+
+    // TODO find by similarity
+    const pokemonIndex = index.find((indexEntry) => indexEntry.name === name);
+
+    if (!pokemonIndex) {
+      return undefined;
+    }
+
+    pokemonIdsByName[name] = pokemonIndex?.id;
 
     return pokemonIdsByName[name];
   }
@@ -105,7 +110,7 @@ export class CachedPokemonData extends Cached {
       {
         pokemon_v2_pokemon(where: {id: {_eq: ${pokemonId}}}) {
           id
-          pokemon_v2_pokemonstats {
+          pokemon_v2_pokemonstats(order_by: {stat_id: asc}) {
             base_stat
             pokemon_v2_stat {
               name
