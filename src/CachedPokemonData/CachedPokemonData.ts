@@ -94,7 +94,9 @@ export class CachedPokemonData extends Cached {
             ability.pokemon_v2_ability.pokemon_v2_abilitynames[0].name,
         ),
         types: pokemon.pokemon_v2_pokemontypes.map(
-          (type) => type.pokemon_v2_type.name,
+          (type) =>
+            type.pokemon_v2_type.name[0].toUpperCase() +
+            type.pokemon_v2_type.name.substring(1),
         ),
       };
     }
