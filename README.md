@@ -1,6 +1,10 @@
 # Pokemon Data Twitch Bot
 
-This bot reads data from the [PokeApi Graphql](https://pokeapi.co/docs/graphql) and to Twitch messages with them.
+This bot reads data from the [PokeApi Graphql](https://pokeapi.co/docs/graphql) and responds to Twitch messages with them.
+
+If you want this to run in your twitch channel, send me a message on my [discord server](https://discord.gg/6AjaSkr).
+
+![image](https://user-images.githubusercontent.com/19432855/201597482-ffe4e471-23ed-46bb-bb31-266dcc00d0fc.png)
 
 ## Install
 
