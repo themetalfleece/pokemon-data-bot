@@ -1,6 +1,6 @@
-#### This project was created using [themetalfleece/nodejs-typescript-template](https://github.com/themetalfleece/nodejs-typescript-template)
+# Pokemon Data Twitch Bot
 
-# This template gets updated daily so the latest dependencies are always used!
+This bot reads data from the [PokeApi Graphql](https://pokeapi.co/docs/graphql) and to Twitch messages with them.
 
 ## Install
 
@@ -11,8 +11,10 @@
 ## Build & Run
 
 1. Copy the contents of the `.env.example` file to a `.env` next to it, and edit it with your values.
-2. Run `yarn build` or `npm build` to build the files.
-3. Run `yarn start` or `npm start` to start the application.
+2. Follow [this twuorple guide](https://twurple.js.org/docs/examples/chat/basic-bot.html) from Twitch bot auth.
+   - The token json file should be placed in `./tokens/token-CLIENTID.json`.
+3. Run `yarn build` or `npm build` to build the files.
+4. Run `yarn start` or `npm start` to start the application.
 
 -   You can run `yarn dev` or `npm dev` to combine the 2 steps above, while listening to changes and restarting automatically.
 
